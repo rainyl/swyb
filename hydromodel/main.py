@@ -290,14 +290,20 @@ class GA(object):
 
     def mutation(self):
         counter = []  # 记录变异位置
-        for i in range(self.pop_size):
-            for j in range(self.chrom_length):
-                if random.random() < self.p_mutation:
-                    if self.pops[i][j] == 0:
-                        self.pops[i][j] = 1
-                    else:
-                        self.pops[i][j] = 0
-                    counter.append([i, j])
+        # 转化为二进制串
+        pops = np.array([[self.d2b(c) for c in r] for r in self.pops])
+        for i, r in enumerate(pops):
+            for j, c in enumerate(r):
+                for k, u in enumerate(c):
+                    if u == '.':
+                        continue
+                    if random.random() < self.p_mutation:
+                        if u == '0':
+                            pops[i][j] = c[:k] + '1' + c[k+1:]
+                        else:
+                            pops[i][j] = c[:k] + '0' + c[k+1:]
+                        counter.append([i, j, k])
+        self.pops = np.array([[self.b2d(c) for c in r] for r in pops])
         return counter
 
     def get_args(self):
@@ -332,25 +338,33 @@ class GA(object):
             self.std += self._step
 
     @classmethod
-    def float2bin(cls, _float, _len=2):
-        _int = int(_float)
-        _float = round(_float, _len) - _int
-        # res = str(bin(_int))[2:] + '.'
-        res = str(bin(_int))[2:]
-        for i in range(_len):
-            _float = round(_float * 2, _len)
-            res += str(int(_float))
-            _float -= int(_float)
-        return res
+    def d2b(cls, _d, _acc=23):
+        if isinstance(_d, int):
+            return int(bin(_d)[2:])
+        else:
+            _float = _d - int(_d)
+            _int = int(_d)
+            _bin = ''
+            while _acc:
+                _float *= 2
+                _bin += '1' if _float > 1. else '0'
+                _float -= int(_float)
+                _acc -= 1
+            return bin(_int)[2:] + '.' + _bin
 
     @classmethod
-    def bin2float(cls, _float, _len=2):
-        _float = str(_float)
-        exp = ''
-        for i in range(-_len, len(_float)-_len):
-            exp += '+{}*2**{}'.format(_float[i], i)
-        res = eval(exp)
-        return res
+    def b2d(cls, _b, _acc=3):
+        if isinstance(_b, int):
+            return int(str(_b), 2)
+        else:
+            _int, _float = str(_b).split('.')
+            _b = str(_b).replace('.', '')
+            i = len(_int) - 1
+            _d = 0
+            for j in _b:
+                _d += int(j) * 2 ** i
+                i -= 1
+            return round(_d, _acc)
 
 
 if __name__ == '__main__':
@@ -430,7 +444,7 @@ if __name__ == '__main__':
         ga.pops = ga.selection(ev)  # 选择新种群
         ga.crossover()
         print("模型效率系数：", max(values))
-        # ga.mutation()
+        ga.mutation()
 
     print("<DEBUG>")
 
