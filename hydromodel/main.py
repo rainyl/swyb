@@ -7,6 +7,7 @@ from itertools import accumulate
 from tqdm import tqdm
 import sqlite3
 from scipy.signal import convolve
+from multiprocessing import Pool, Process
 
 
 class Xinanjiang(object):
@@ -231,7 +232,8 @@ class GA(object):
         self.std = 0.4
         self._step = 0.01
         self.p_cross = 0.6
-        self.p_mutation = 0.1
+        self.p_mutation = 0.01
+        self.counter = 0
         self.ranges = [[100, 130],  # WM
                        [0, 50],  # WUM
                        [0, 50],  # WLM
@@ -255,7 +257,6 @@ class GA(object):
 
     def evaluate(self):
         idxs = np.where(self.values > self.std)[0]
-        print(idxs)
         self.pops = np.array(self.pops)[idxs]
         return self.values[idxs]
 
@@ -334,6 +335,8 @@ class GA(object):
         self.values = np.array(_values)
 
     def step(self):
+        self.counter += 1
+        self._step = 1/(self.counter*10)
         if self.std < 0.85:
             self.std += self._step
 
@@ -365,6 +368,26 @@ class GA(object):
                 _d += int(j) * 2 ** i
                 i -= 1
             return round(_d, _acc)
+
+
+def fun():
+    for __args in tqdm(ga.get_args()):
+        xinanjiang.refresh_args(__args)
+        xinanjiang.go()
+        # x = [i for i in range(len(data[:, 1]))]
+        # plt.plot(x, xinanjiang.q, 'b--', label='q')
+        # plt.plot(x, xinanjiang.QRT[:-1], 'r-', label='qrt')
+        # plt.legend()
+        # plt.show()
+        # print("离差平方和：", xinanjiang.ssd())
+        # print("模型效率系数：", xinanjiang.R_2())
+        values.append(xinanjiang.R_2())  # 效率系数
+    ga.set_values(values)  # 设置效率系数
+    ev = ga.evaluate()  # 评价并淘汰
+    ga.pops = ga.selection(ev)  # 选择新种群
+    ga.crossover()
+    print("第【{}】代##标准【{}】##模型效率系数：".format(g, ga.std), max(values))
+    ga.mutation()
 
 
 if __name__ == '__main__':
@@ -424,10 +447,12 @@ if __name__ == '__main__':
     # KKSS: 壤中流消退系数
     # UH: 单元流域上地面径流单位线
 
-    ga = GA(100, 13)
+    ga = GA(500, 13)
     ga.init_pop()
-    for g in range(ga.generation):
+    for g in range(100):
         values = []
+        # p = Process(target=fun)
+        # p.start()
         for args in tqdm(ga.get_args()):
             xinanjiang.refresh_args(args)
             xinanjiang.go()
@@ -443,7 +468,7 @@ if __name__ == '__main__':
         ev = ga.evaluate()  # 评价并淘汰
         ga.pops = ga.selection(ev)  # 选择新种群
         ga.crossover()
-        print("模型效率系数：", max(values))
+        print("第【{}】代##标准【{}】##模型效率系数：".format(g, ga.std), max(values))
         ga.mutation()
 
     print("<DEBUG>")

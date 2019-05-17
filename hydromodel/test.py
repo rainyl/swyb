@@ -1,3 +1,6 @@
+from multiprocessing import Pool
+
+
 def d2b(_d, _acc=23):
     if isinstance(_d, int):
         return int(bin(_d)[2:])
