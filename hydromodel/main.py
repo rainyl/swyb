@@ -274,8 +274,8 @@ class GA(object):
         return new_pop
 
     def crossover(self, points=1):
-        locs = [round(random.uniform(0, 1), 1) for i in range(points)]
-        locs = [int(i*self.chrom_length) for i in locs]
+        # locs = [round(random.uniform(0, 1), 1) for i in range(points)]
+        # locs = [int(i*self.chrom_length) for i in locs]
         loc = random.randint(1, self.chrom_length-1)
         random.shuffle(self.pops)  # 打乱种群染色体
         # 单点交叉
