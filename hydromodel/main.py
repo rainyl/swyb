@@ -332,10 +332,13 @@ class GA(object):
         self.values = np.array(_values)
 
     def step(self):
-        self.counter += 1
-        self._step = 1/(self.counter*10)
-        if self.std < 0.85:
-            self.std += self._step
+        if self.std > 0.8:
+            self.std = 0.8
+        else:
+            self.counter += 1
+            self._step = 1/(self.counter*10)
+            if self.std < 0.85:
+                self.std += self._step
 
     @classmethod
     def d2b(cls, _d, _acc=23):
@@ -462,6 +465,11 @@ if __name__ == '__main__':
             # print("离差平方和：", xinanjiang.ssd())
             # print("模型效率系数：", xinanjiang.R_2())
             values.append(xinanjiang.R_2())  # 效率系数
+        x = [i for i in range(len(data[:, 1]))]
+        plt.plot(x, xinanjiang.q, 'b--', label='q')
+        plt.plot(x, xinanjiang.QRT[:-1], 'r-', label='qrt')
+        plt.legend()
+        plt.show()
         ga.set_values(values)  # 设置效率系数
         ev = ga.evaluate()  # 评价并淘汰
         ga.pops = ga.selection(ev)  # 选择新种群
@@ -473,6 +481,10 @@ if __name__ == '__main__':
         except Exception as e:
             print(e)
         ga.mutation()
+        if round(max(values), 2) > 0.82:
+            break
+
+
 
     print("<DEBUG>")
 
