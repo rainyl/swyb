@@ -5,4 +5,5 @@ venv-linux/
 out.xls
 docs/
 *.pdf
+*.m
 

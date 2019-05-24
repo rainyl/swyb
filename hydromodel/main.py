@@ -391,6 +391,7 @@ def fun():
 
 
 if __name__ == '__main__':
+    print(GA.d2b(0.5))
     conn = sqlite3.connect('baoriver.db')
     cur = conn.cursor()
     cur.execute("SELECT * FROM args")
@@ -430,6 +431,12 @@ if __name__ == '__main__':
     # xinanjiang
     xinanjiang = Xinanjiang(_args=args_tmp, _data=data_dict)
     xinanjiang.go()
+    matrix = xinanjiang.matrix()
+    x = [i for i in range(len(data[:, 1]))]
+    plt.plot(x, xinanjiang.q, 'b--', label='q')
+    plt.plot(x, xinanjiang.QRT[:-1], 'r-', label='qrt')
+    plt.legend()
+    plt.show()
     print("模型效率系数：", xinanjiang.R_2())
 
     # K: 蒸发系数
@@ -469,6 +476,7 @@ if __name__ == '__main__':
         ga.pops = ga.selection(ev)  # 选择新种群
         ga.crossover()
         print("第【{}】代##标准【{}】##模型效率系数：".format(g, ga.std), max(values))
+        print("最优参数：", list(ga.get_args())[values.index(max(values))])
         ga.mutation()
 
     print("<DEBUG>")
