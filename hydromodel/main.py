@@ -51,7 +51,7 @@ class Xinanjiang(object):
         self.QRS, self.QRI, self.QRG, self.QRT, self.Q = np.zeros((5, self.__len + 1))
 
     def refresh_args(self, _args):
-        self.__len = len(self.p)
+        # self.__len = len(self.p)
         (self.WM, self.WUM, self.WLM, self.KC, self.C, self.B, self.IMP, self.FE) =\
             (_args['WM'], _args['WUM'], _args['WLM'],
              _args['KC'], _args['C'], _args['B'], _args['IMP'], _args['FE'])
@@ -69,7 +69,7 @@ class Xinanjiang(object):
         # for runoff
         self.W = self.WM * self.FE
         self.WMM = self.WM * (1 + self.B) / (1 - self.IMP)
-        self.r = np.zeros((1, self.__len + 1)).flatten()
+        # self.r = np.zeros((1, self.__len + 1)).flatten()
 
         # 水源划分参数定义
         self.SM, self.EX, self.KG, self.KKG, self.KSS, self.KKSS = \
@@ -80,10 +80,7 @@ class Xinanjiang(object):
         self.AU[0] = self.MS * (1 - (1 - self.S[0] / self.SM) ** (1 / (1 + self.EX)))
 
         # 汇流参数定义
-        self.UH = _args['UH']
-        self.A = _args['A']
-        self.delta_t = 24
-        self.QRS, self.QRI, self.QRG, self.QRT, self.Q = np.zeros((5, self.__len + 1))
+        # self.QRS, self.QRI, self.QRG, self.QRT, self.Q = np.zeros((5, self.__len + 1))
 
     def runoff(self):
         # 蒸发计算
@@ -335,10 +332,13 @@ class GA(object):
         self.values = np.array(_values)
 
     def step(self):
-        self.counter += 1
-        self._step = 1/(self.counter*10)
-        if self.std < 0.85:
-            self.std += self._step
+        if self.std > 0.8:
+            self.std = 0.8
+        else:
+            self.counter += 1
+            self._step = 1/(self.counter*10)
+            if self.std < 0.85:
+                self.std += self._step
 
     @classmethod
     def d2b(cls, _d, _acc=23):
@@ -454,13 +454,14 @@ if __name__ == '__main__':
     # KKSS: 壤中流消退系数
     # UH: 单元流域上地面径流单位线
 
-    ga = GA(500, 13)
+    ga = GA(200, 13)
     ga.init_pop()
     for g in range(100):
         values = []
         # p = Process(target=fun)
         # p.start()
-        for args in tqdm(ga.get_args()):
+        gaargs = list(ga.get_args())
+        for args in tqdm(gaargs):
             xinanjiang.refresh_args(args)
             xinanjiang.go()
             # x = [i for i in range(len(data[:, 1]))]
@@ -471,13 +472,25 @@ if __name__ == '__main__':
             # print("离差平方和：", xinanjiang.ssd())
             # print("模型效率系数：", xinanjiang.R_2())
             values.append(xinanjiang.R_2())  # 效率系数
+        x = [i for i in range(len(data[:, 1]))]
+        plt.plot(x, xinanjiang.q, 'b--', label='q')
+        plt.plot(x, xinanjiang.QRT[:-1], 'r-', label='qrt')
+        plt.legend()
+        plt.show()
         ga.set_values(values)  # 设置效率系数
         ev = ga.evaluate()  # 评价并淘汰
         ga.pops = ga.selection(ev)  # 选择新种群
         ga.crossover()
         print("第【{}】代##标准【{}】##模型效率系数：".format(g, ga.std), max(values))
         print("最优参数：", list(ga.get_args())[values.index(max(values))])
+        try:
+            best = gaargs[values.index(max(values))]
+            print("参数值为: {}".format(best))
+        except Exception as e:
+            print(e)
         ga.mutation()
+        if round(max(values), 2) > 0.82:
+            break
 
     print("<DEBUG>")
 
